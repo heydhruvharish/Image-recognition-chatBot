@@ -2,7 +2,9 @@ import streamlit as st
 from openai import OpenAI
 import base64
 
-# --- 1. Helper Function ---
+with open ("requirements.txt","r") as file:
+    instruction=file.read()
+
 def encode_image(uploaded_file):
     """Converts a Streamlit UploadedFile to a base64 string."""
     if uploaded_file is not None:
@@ -10,23 +12,20 @@ def encode_image(uploaded_file):
         return base64.b64encode(bytes_data).decode('utf-8')
     return None
 
-# --- 2. Page Setup & Initialization ---
+
 st.set_page_config(page_title="Vision Chatbot", page_icon="👁️", layout="wide")
 st.title("Multimodal Vision Chatbot 👁️💬")
 
-# Initialize OpenAI Client (Replace with your actual API key)
-# For production, use st.secrets or environment variables instead of hardcoding
-# Point the OpenAI client to Groq's API servers
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
     api_key=st.secrets["GROQ_API_KEY"]
 )
 
-# Initialize chat history in session state
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 3. Sidebar UI ---
+
 with st.sidebar:
     st.header("Upload Context")
     st.info("Upload an image here, then ask questions about it in the main chat area.")
@@ -38,25 +37,23 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# --- 4. Main Chat Interface ---
-# Display existing chat messages
+
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- 5. Chat Input & API Logic ---
+
 if prompt := st.chat_input("Ask a question about the image..."):
     
-    # Display user message in chat
+
     with st.chat_message("user"):
         st.markdown(prompt)
         
-    # Add user text to session state
+
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Prepare the API payload
+
     api_messages = [
-        {"role": "system", "content": "You are a helpful assistant that can analyze images and answer questions. If no image is provided, converse normally."}
+        {"role": "system", "content": instruction}
     ]
     
     # Add historical messages (text only for context)
@@ -75,7 +72,7 @@ if prompt := st.chat_input("Ask a question about the image..."):
         
     api_messages.append({"role": "user", "content": current_content})
     
-    # Call the OpenAI API and stream the response
+   
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
@@ -93,10 +90,10 @@ if prompt := st.chat_input("Ask a question about the image..."):
                     full_response += chunk.choices[0].delta.content
                     message_placeholder.markdown(full_response + "▌")
             
-            # Finalize the response UI
+           
             message_placeholder.markdown(full_response)
             
-            # Add assistant response to session state history
+            
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
